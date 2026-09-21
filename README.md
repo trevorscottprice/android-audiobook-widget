@@ -35,11 +35,20 @@ anything else, pick the app from a list in the setup screen.
 > Not affiliated with, endorsed by, or sponsored by Chirp, BookBub, Audible, or
 > any other player. It contains no code or assets from those apps.
 
+Two sizes. **4x2** with cover art, progress and time remaining:
+
 | Dark | Light |
 | --- | --- |
-| ![Widget, dark theme](docs/widget-dark.png) | ![Widget, light theme](docs/widget-light.png) |
+| ![4x2 widget, dark theme](docs/widget-dark.png) | ![4x2 widget, light theme](docs/widget-light.png) |
 
-The widget follows the system theme. Cover art shown belongs to its respective
+**4x1** compact, for when a row is all you can spare — book info and controls,
+no cover art and no progress bar:
+
+| Dark | Light |
+| --- | --- |
+| ![4x1 widget, dark theme](docs/widget-compact-dark.png) | ![4x1 widget, light theme](docs/widget-compact-light.png) |
+
+Both follow the system theme. Cover art shown belongs to its respective
 publisher and appears only to illustrate the layout.
 
 ## How it works
@@ -53,7 +62,14 @@ is used, and the player's servers are never contacted.
   notification listener is what grants permission to read and control other
   apps' media sessions (`MediaSessionManager.getActiveSessions`). It also stays
   resident, so it can push the widget an update the moment playback changes.
-- `AudiobookWidgetProvider` renders the widget and handles the button taps.
+- `WidgetRender` holds the rendering and transport logic shared by every size.
+  A `Size` enum pairs each layout with flags for the optional pieces it
+  contains; RemoteViews throws if you address a view id the layout does not
+  have, so `hasCover` / `hasProgress` are load-bearing rather than cosmetic.
+- `AudiobookWidgetProvider` (4x2) and `CompactWidgetProvider` (4x1) each render
+  their size. Both aim their buttons at `AudiobookWidgetProvider`, which handles
+  transport for every size and then repaints all placed widgets: a receiver is
+  live whether or not an instance of its size is on screen.
 - `MediaSessions` locates the player's session and holds the two preferences.
 - `MainActivity` is the one-time setup screen.
 
@@ -68,7 +84,9 @@ than the one on the button. Chirp's, for instance, is 15 seconds.
 2. Open **Audiobook Widget** and grant **notification access** (step 1).
 3. Confirm the detected player, or pick it from the list (step 2).
 4. Choose a skip amount — 10, 15, 30 or 60 seconds (step 3).
-5. Long-press the home screen → **Widgets** → drag **Audiobook Widget** on.
+5. Long-press the home screen → **Widgets** → drag on either
+   **Audiobook Widget** (4x2) or **Audiobook Widget (compact)** (4x1). Both can
+   be placed at once; they stay in sync.
 
 Start a book and the widget fills in. With nothing playing it shows
 "Nothing playing" and opens the player when tapped.
@@ -103,7 +121,7 @@ Output lands at `app/build/outputs/apk/debug/app-debug.apk`.
 ## Layout sizing
 
 Two things make the widget layout unintuitive, both worth knowing before
-changing `res/layout/widget_player.xml`:
+changing `res/layout/widget_player.xml` or `res/layout/widget_compact.xml`:
 
 **The host scales the whole widget.** On Samsung One UI the instance is laid out
 at its nominal cell size and then scaled down. Read the real numbers instead of
@@ -124,9 +142,12 @@ large the individual elements get. It fills the height, with the control row on
 `layout_weight="1"` so the title pins to the top, the progress row pins to the
 bottom, and the buttons take up the slack in between.
 
-Current sizes: cover 112dp, all three buttons 68dp, glyphs 64dp, title 17sp.
+Current 4x2 sizes: cover 112dp, all three buttons 68dp, glyphs 64dp, title 17sp.
 The control row needs `3 x 68 + 2 x 8 = 220dp`, against roughly 236dp of column
 width — so growing the buttons further means shrinking the cover first.
+
+The 4x1 has no cover to trade against, so its buttons are 56dp and the text
+block takes whatever width is left.
 
 ## Notes
 

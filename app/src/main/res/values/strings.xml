@@ -13,6 +13,9 @@
     <string name="cd_forward">Skip forward</string>
     <string name="cd_play_pause">Play or pause</string>
     <string name="widget_description">Play, pause and skip the audiobook you are listening to.</string>
+    <string name="widget_full_name">Audiobook Widget</string>
+    <string name="widget_compact_name">Audiobook Widget (compact)</string>
+    <string name="widget_compact_description">A single-row bar: book info, play, pause and skip. No cover art.</string>
 
     <!-- Setup screen -->
     <string name="setup_heading">Audiobook Widget</string>

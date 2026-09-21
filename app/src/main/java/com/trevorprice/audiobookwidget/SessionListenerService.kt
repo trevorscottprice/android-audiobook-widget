@@ -42,7 +42,7 @@ class SessionListenerService : NotificationListenerService() {
     /** While playing, keep the progress bar and remaining time moving. */
     private val ticker = object : Runnable {
         override fun run() {
-            AudiobookWidgetProvider.updateAll(this@SessionListenerService)
+            WidgetRender.updateAll(this@SessionListenerService)
             if (MediaSessions.isPlaying(watched?.playbackState)) {
                 handler.postDelayed(this, TICK_MS)
             }

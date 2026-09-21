@@ -88,7 +88,7 @@ class MainActivity : Activity() {
             button.isEnabled = skipChoices[index] != skip
         }
 
-        AudiobookWidgetProvider.updateAll(this)
+        WidgetRender.updateAll(this)
     }
 
     /**
