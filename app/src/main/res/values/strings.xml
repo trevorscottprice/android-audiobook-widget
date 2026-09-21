@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Audiobook Widget</string>
+
+    <!-- Widget -->
+    <string name="nothing_playing">Nothing playing</string>
+    <string name="open_player_hint">Tap to open your player</string>
+    <string name="time_left">-%1$s left</string>
+    <string name="setup_needed_title">Tap to set up</string>
+    <string name="setup_needed_body">Notification access is required</string>
+    <string name="cd_cover">Cover art</string>
+    <string name="cd_rewind">Skip back</string>
+    <string name="cd_forward">Skip forward</string>
+    <string name="cd_play_pause">Play or pause</string>
+    <string name="widget_description">Play, pause and skip the audiobook you are listening to.</string>
+
+    <!-- Setup screen -->
+    <string name="setup_heading">Audiobook Widget</string>
+    <string name="setup_intro">This widget controls your player through the same media session your lock screen uses. Two quick steps and you are done.</string>
+
+    <string name="step_access">1. Notification access</string>
+    <string name="access_granted">Granted. The widget can read and control playback.</string>
+    <string name="access_missing">Not granted yet. Without it Android will not let the widget see your player\'s playback.</string>
+    <string name="access_button_grant">Grant notification access</string>
+    <string name="access_button_change">Change notification access</string>
+
+    <string name="step_app">2. Which app to control</string>
+    <string name="app_none">No app selected. Pick your audiobook player from the list.</string>
+    <string name="app_selected">Using %1$s (%2$s)</string>
+    <string name="app_button">Choose app</string>
+    <string name="app_picker_title">Select your player</string>
+
+    <string name="step_skip">3. Skip amount</string>
+    <string name="skip_10">10s</string>
+    <string name="skip_15">15s</string>
+    <string name="skip_30">30s</string>
+    <string name="skip_60">60s</string>
+
+    <string name="setup_outro">Now long-press your home screen, choose Widgets, and drag Audiobook Widget onto it. Start a book in your player and the widget fills in.</string>
+</resources>
