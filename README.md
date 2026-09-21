@@ -4,6 +4,33 @@ An Android home screen widget for audiobook players, in the spirit of Audible's:
 cover art, book title, skip back / play-pause / skip forward, and a progress bar
 with time remaining.
 
+## Why not a generic media widget?
+
+Plenty of universal media-control widgets exist and they work fine. They are
+built for music, though, and a book is not an album:
+
+- **It seeks by time, not by track.** Music widgets give you previous / next
+  track. An audiobook chapter is not a track, and jumping one is rarely what
+  you want after missing a sentence.
+- **The skip matches the number on the button.** It issues an explicit
+  `seekTo` rather than the session's own rewind, because a player's native
+  interval may be something else entirely — Chirp's is 15 seconds, so a widget
+  that delegates would jump 15 while the icon read 30.
+- **Progress is book-scale and speed-corrected.** Time remaining is for the
+  current item, and the position extrapolation multiplies by
+  `PlaybackState.playbackSpeed` — audiobook listeners rarely sit at 1.0x, and
+  ignoring that makes the bar drift between updates.
+- **The subtitle prefers the publisher.** Some players put an internal chapter
+  id in `DISPLAY_SUBTITLE` (Chirp shows things like `WARBREAKER1P02`), so
+  `METADATA_KEY_ARTIST` is tried first.
+- **No permissions, no network, no accounts.** The manifest declares zero
+  `uses-permission` entries; it cannot reach the internet, so there is nothing
+  to serve ads or telemetry with. Notification access is the one thing you
+  grant, and it is what the media-session API requires.
+
+If what you actually want is album art with previous / next track, a generic
+music widget is the better tool.
+
 ## What it works with
 
 Any Android app that publishes a standard [`MediaSession`][mediasession] — the
