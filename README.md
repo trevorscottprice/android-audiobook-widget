@@ -131,9 +131,21 @@ sdk.dir=C:/Users/you/Android/Sdk
 Use forward slashes — it is a Java properties file, so a Windows path with
 backslashes will read `\t` and friends as escape sequences.
 
+Then build and install in one step — PowerShell:
+
 ```powershell
 .\build-and-install.ps1
 ```
+
+macOS or Linux:
+
+```bash
+./build-and-install.sh
+```
+
+Either one builds, installs to the connected device, and opens the setup
+screen. If no device is attached it says what to enable on the phone and
+leaves the APK for you.
 
 Or by hand:
 
@@ -154,6 +166,19 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
 Output lands at `app/build/outputs/apk/debug/app-debug.apk`.
+
+## Continuous integration
+
+`.github/workflows/build.yml` assembles the debug APK and runs `lintDebug` on
+every push to `main` and every pull request, and uploads both the APK and the
+lint report as artifacts — so you can grab a build without a toolchain.
+
+Lint is worth having here: a widget is built from RemoteViews and provider
+metadata, where a wrong view id or a malformed `appwidget-provider` compiles
+happily and only fails on the home screen.
+
+Pushing a `v*` tag additionally attaches the APK to a GitHub release. Note it
+is debug-signed, so it is fine for sideloading and not for Play.
 
 ## Layout sizing
 

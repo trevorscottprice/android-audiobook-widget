@@ -1,0 +1,83 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Assemble debug APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install SDK packages
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      # Caches the Gradle distribution the wrapper downloads, plus the
+      # dependency cache, so later runs skip both.
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Assemble
+        run: ./gradlew assembleDebug --no-daemon --console=plain
+
+      # Lint catches manifest and resource mistakes that still compile, which
+      # is most of what can go wrong in a widget built from RemoteViews.
+      - name: Lint
+        run: ./gradlew lintDebug --no-daemon --console=plain
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+      - name: Upload lint report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-report
+          path: app/build/reports/lint-results-debug.html
+          if-no-files-found: ignore
+
+  release:
+    name: Attach APK to release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: app-debug
+
+      - name: Publish
+        uses: softprops/action-gh-release@v2
+        with:
+          files: app-debug.apk
+          body: |
+            Debug-signed APK, built from ${{ github.ref_name }}.
+
+            Install with `adb install -r app-debug.apk`, then open
+            **Audiobook Widget** and grant notification access.
