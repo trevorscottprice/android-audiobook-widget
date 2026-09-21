@@ -120,8 +120,9 @@ Start a book and the widget fills in. With nothing playing it shows
 
 ## Building
 
-Requires JDK 17, the Android SDK (platform 35, build-tools 35.0.0) and
-Gradle 8.x. Create `local.properties` pointing at your SDK:
+Requires JDK 17 and the Android SDK (platform 35, build-tools 35.0.0). Gradle
+itself is not a prerequisite — the wrapper fetches the pinned version. Create
+`local.properties` pointing at your SDK, or set `ANDROID_HOME` instead:
 
 ```properties
 sdk.dir=C:/Users/you/Android/Sdk
@@ -139,8 +140,17 @@ Or by hand:
 ```powershell
 $env:JAVA_HOME = '<your JDK 17>'
 $env:ANDROID_HOME = '<your Android SDK>'
-gradle assembleDebug
+.\gradlew assembleDebug
 adb install -r app\build\outputs\apk\debug\app-debug.apk
+```
+
+On macOS or Linux:
+
+```bash
+export JAVA_HOME=<your JDK 17>
+export ANDROID_HOME=<your Android SDK>
+./gradlew assembleDebug
+adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
 Output lands at `app/build/outputs/apk/debug/app-debug.apk`.

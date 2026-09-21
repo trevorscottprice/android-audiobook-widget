@@ -10,9 +10,10 @@ Set-Location $PSScriptRoot
 if ($env:ANDROID_HOME) { $env:PATH = "$env:ANDROID_HOME\platform-tools;$env:PATH" }
 if ($env:JAVA_HOME) { $env:PATH = "$env:JAVA_HOME\bin;$env:PATH" }
 
-$gradle = if (Get-Command gradle -ErrorAction SilentlyContinue) { 'gradle' }
-          elseif (Test-Path '.\gradlew.bat') { '.\gradlew.bat' }
-          else { throw 'Gradle not found. Install Gradle 8.x or add a wrapper.' }
+# Prefer the wrapper: it pins the Gradle version the project was built against.
+$gradle = if (Test-Path '.\gradlew.bat') { '.\gradlew.bat' }
+          elseif (Get-Command gradle -ErrorAction SilentlyContinue) { 'gradle' }
+          else { throw 'No Gradle wrapper and no gradle on PATH.' }
 
 Write-Host 'Building...' -ForegroundColor Cyan
 & $gradle assembleDebug --console=plain

@@ -1,0 +1,10 @@
+# Normalise line endings so the repo is consistent regardless of platform.
+* text=auto eol=lf
+
+# The wrapper script Windows invokes must keep CRLF.
+*.bat text eol=crlf
+
+# Never touch these.
+*.jar binary
+*.png binary
+gradlew text eol=lf
