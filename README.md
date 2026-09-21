@@ -1,5 +1,7 @@
 # Audiobook Widget
 
+[![Build](https://github.com/trevorscottprice/android-audiobook-widget/actions/workflows/build.yml/badge.svg)](https://github.com/trevorscottprice/android-audiobook-widget/actions/workflows/build.yml)
+
 An Android home screen widget for audiobook players, in the spirit of Audible's:
 cover art, book title, skip back / play-pause / skip forward, and a progress bar
 with time remaining.
