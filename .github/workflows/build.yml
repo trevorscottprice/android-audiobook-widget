@@ -25,8 +25,13 @@ jobs:
           distribution: temurin
           java-version: "17"
 
+      # packages: '' because the action otherwise installs the legacy "tools"
+      # package, which Google has removed -- sdkmanager then fails with
+      # "Failed to find package 'tools'". We install what we need below.
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: ""
 
       - name: Install SDK packages
         run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
