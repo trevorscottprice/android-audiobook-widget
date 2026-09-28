@@ -2,10 +2,16 @@ package com.trevorprice.audiobookwidget
 
 import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
+import android.media.browse.MediaBrowser
 import android.media.session.MediaController
 import android.media.session.MediaSessionManager
 import android.media.session.PlaybackState
+import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
+import android.service.media.MediaBrowserService
 import android.provider.Settings
 
 /**
@@ -106,6 +112,68 @@ object MediaSessions {
         return sessions.firstOrNull { it.packageName in KNOWN_CHIRP_PACKAGES }
             ?: sessions.firstOrNull { it.packageName.contains("chirp", true) }
     }
+
+    /** The player's media browser service, or null if it does not publish one. */
+    fun browserService(ctx: Context, pkg: String): ComponentName? {
+        val intent = Intent(MediaBrowserService.SERVICE_INTERFACE).setPackage(pkg)
+        val info = ctx.packageManager.queryIntentServices(intent, 0)
+            .firstOrNull()?.serviceInfo ?: return null
+        return ComponentName(info.packageName, info.name)
+    }
+
+    /**
+     * Starts playback in a player that has no live session, by connecting to
+     * its media browser and asking the session behind it to play. Players
+     * built on Media3 treat that as "resume where I left off".
+     *
+     * [done] runs exactly once, whether or not the player could be reached.
+     */
+    fun resume(ctx: Context, done: () -> Unit) {
+        val app = ctx.applicationContext
+        val component = targetPackage(app)?.let { browserService(app, it) }
+            ?: return done()
+
+        val handler = Handler(Looper.getMainLooper())
+        var finished = false
+        lateinit var browser: MediaBrowser
+        fun finish() {
+            if (finished) return
+            finished = true
+            handler.removeCallbacksAndMessages(null)
+            browser.disconnect()
+            done()
+        }
+
+        browser = MediaBrowser(app, component, object : MediaBrowser.ConnectionCallback() {
+            override fun onConnected() {
+                val controller = MediaController(app, browser.sessionToken)
+                controller.transportControls.play()
+                restoreSpeed(app, controller)
+                // Stay bound briefly: the player needs a moment to start and
+                // take itself to the foreground before we let go of it.
+                handler.postDelayed(::finish, RESUME_HOLD_MS)
+            }
+
+            override fun onConnectionFailed() = finish()
+            override fun onConnectionSuspended() = finish()
+        }, null)
+        handler.postDelayed(::finish, RESUME_TIMEOUT_MS)
+        browser.connect()
+    }
+
+    /**
+     * Not gated on ACTION_SET_PLAYBACK_SPEED: a freshly woken session may not
+     * have published its actions yet, and a player that cannot change speed
+     * just ignores the command.
+     */
+    private fun restoreSpeed(ctx: Context, controller: MediaController) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return
+        val speed = LastPlayed.speed(ctx) ?: return
+        controller.transportControls.setPlaybackSpeed(speed)
+    }
+
+    private const val RESUME_HOLD_MS = 3000L
+    private const val RESUME_TIMEOUT_MS = 8000L
 
     fun isPlaying(state: PlaybackState?): Boolean =
         state?.state == PlaybackState.STATE_PLAYING

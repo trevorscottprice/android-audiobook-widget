@@ -8,6 +8,11 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent>
+        <!-- Lets us find the player's media browser so the widget can wake it
+             and resume playback once it has dropped its session. -->
+        <intent>
+            <action android:name="android.media.browse.MediaBrowserService" />
+        </intent>
     </queries>
 
     <application

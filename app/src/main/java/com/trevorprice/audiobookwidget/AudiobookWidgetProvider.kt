@@ -36,6 +36,16 @@ class AudiobookWidgetProvider : AppWidgetProvider() {
                 // them a moment later once the player has actually reacted.
                 WidgetRender.updateAll(context)
             }
+
+            WidgetRender.ACTION_RESUME -> {
+                // Waking the player takes a few seconds of binding, longer
+                // than onReceive may block, so hold the broadcast open.
+                val pending = goAsync()
+                MediaSessions.resume(context) {
+                    WidgetRender.updateAll(context)
+                    pending.finish()
+                }
+            }
         }
         super.onReceive(context, intent)
     }

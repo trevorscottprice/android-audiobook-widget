@@ -20,6 +20,7 @@ object LastPlayed {
     private const val KEY_SUBTITLE = "subtitle"
     private const val KEY_DURATION = "duration"
     private const val KEY_POSITION = "position"
+    private const val KEY_SPEED = "speed"
     private const val KEY_ART_TITLE = "art_title"
     private const val ART_FILE = "last_cover.png"
 
@@ -36,7 +37,7 @@ object LastPlayed {
      * cover is only rewritten when it belongs to a different book than the one
      * already on disk.
      */
-    fun save(ctx: Context, pkg: String, book: Snapshot) {
+    fun save(ctx: Context, pkg: String, book: Snapshot, playingSpeed: Float?) {
         val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val editor = prefs.edit()
             .putString(KEY_PKG, pkg)
@@ -44,6 +45,9 @@ object LastPlayed {
             .putString(KEY_SUBTITLE, book.subtitle)
             .putLong(KEY_DURATION, book.durationMs)
             .putLong(KEY_POSITION, book.positionMs)
+        // A paused session reports a speed of 0, so only a playing one tells
+        // us what the listener actually chose.
+        if (playingSpeed != null && playingSpeed > 0f) editor.putFloat(KEY_SPEED, playingSpeed)
 
         val art = book.art
         val artFile = File(ctx.filesDir, ART_FILE)
@@ -56,6 +60,16 @@ object LastPlayed {
             }
         }
         editor.apply()
+    }
+
+    /**
+     * The speed the listener was last playing at, or null if we never saw one.
+     * Some players (Chirp, at least) come back at 1.0x when resumed from
+     * outside the app, so this is put back after a resume.
+     */
+    fun speed(ctx: Context): Float? {
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        return if (prefs.contains(KEY_SPEED)) prefs.getFloat(KEY_SPEED, 1f) else null
     }
 
     /** The saved book, or null if there is none or it came from another player. */

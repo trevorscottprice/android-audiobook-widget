@@ -29,6 +29,7 @@ object WidgetRender {
     const val ACTION_PLAY_PAUSE = "com.trevorprice.audiobookwidget.PLAY_PAUSE"
     const val ACTION_REWIND = "com.trevorprice.audiobookwidget.REWIND"
     const val ACTION_FORWARD = "com.trevorprice.audiobookwidget.FORWARD"
+    const val ACTION_RESUME = "com.trevorprice.audiobookwidget.RESUME"
 
     /** Cover art travels to the launcher over IPC, so keep it small. */
     private const val ART_PX = 256
@@ -117,12 +118,18 @@ object WidgetRender {
             views.setOnClickPendingIntent(R.id.play_pause_btn, broadcast(context, ACTION_PLAY_PAUSE))
             views.setOnClickPendingIntent(R.id.forward_btn, broadcast(context, ACTION_FORWARD))
         } else {
-            // No session means nothing to send commands to, and a receiver may
-            // not start an activity from the background, so every button opens
-            // the player directly to bring it back.
+            // No session means nothing to send commands to. Play can still wake
+            // a player that publishes a media browser; everything else opens
+            // the player, since a receiver may not start an activity from the
+            // background.
             val player = openPlayer(context)
+            val canResume = MediaSessions.targetPackage(context)
+                ?.let { MediaSessions.browserService(context, it) } != null
             views.setOnClickPendingIntent(R.id.rewind_btn, player)
-            views.setOnClickPendingIntent(R.id.play_pause_btn, player)
+            views.setOnClickPendingIntent(
+                R.id.play_pause_btn,
+                if (canResume) broadcast(context, ACTION_RESUME) else player
+            )
             views.setOnClickPendingIntent(R.id.forward_btn, player)
         }
         views.setOnClickPendingIntent(R.id.text_block, openPlayer(context))
@@ -141,9 +148,10 @@ object WidgetRender {
         // Some players put an internal chapter id in DISPLAY_SUBTITLE and the
         // publisher in ARTIST, so prefer the publisher and keep the id only as
         // a last resort.
-        val subtitle = metadata.getString(MediaMetadata.METADATA_KEY_ARTIST)
+        val subtitle = (metadata.getString(MediaMetadata.METADATA_KEY_ARTIST)
             ?: metadata.getString(MediaMetadata.METADATA_KEY_ALBUM_ARTIST)
-            ?: metadata.getString(MediaMetadata.METADATA_KEY_DISPLAY_SUBTITLE)
+            ?: metadata.getString(MediaMetadata.METADATA_KEY_DISPLAY_SUBTITLE))
+            ?.let { withTrackCount(context, it, controller.queue?.size ?: 0) }
         val art = (metadata.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
             ?: metadata.getBitmap(MediaMetadata.METADATA_KEY_ART)
             ?: metadata.getBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON))
@@ -155,7 +163,11 @@ object WidgetRender {
             durationMs = metadata.getLong(MediaMetadata.METADATA_KEY_DURATION),
             positionMs = MediaSessions.currentPosition(controller.playbackState)
         )
-        LastPlayed.save(context, controller.packageName, snapshot)
+        val state = controller.playbackState
+        LastPlayed.save(
+            context, controller.packageName, snapshot,
+            if (MediaSessions.isPlaying(state)) state?.playbackSpeed else null
+        )
         return snapshot
     }
 
@@ -249,6 +261,21 @@ object WidgetRender {
     }
 
     // ---- helpers -----------------------------------------------------------
+
+    private val TRACK_ONLY = Regex("""track\s+(\d+)""", RegexOption.IGNORE_CASE)
+
+    /**
+     * Chirp has no author field and puts a bare "Track 6" in the subtitle.
+     * The queue holds one item per track, so its size turns that into
+     * "Track 6 of 15". Anything else, or a number past the end of the queue,
+     * is left as the player sent it.
+     */
+    private fun withTrackCount(context: Context, subtitle: String, tracks: Int): String {
+        val number = TRACK_ONLY.matchEntire(subtitle.trim())
+            ?.groupValues?.get(1)?.toIntOrNull() ?: return subtitle
+        if (number < 1 || number > tracks) return subtitle
+        return context.getString(R.string.track_of, number, tracks)
+    }
 
     /** Scale down and round the corners so the art matches the widget shape. */
     private fun prepareArt(source: Bitmap): Bitmap {
