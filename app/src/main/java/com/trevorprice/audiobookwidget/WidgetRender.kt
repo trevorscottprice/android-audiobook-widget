@@ -67,33 +67,24 @@ object WidgetRender {
         }
 
         val controller = MediaSessions.controller(context)
-        val metadata = controller?.metadata
         val state = controller?.playbackState
+        val live = controller?.let { nowPlaying(context, it) }
+        // With no live book, show the last one we saw rather than going blank.
+        val shown = live ?: LastPlayed.load(
+            context, controller?.packageName ?: MediaSessions.targetPackage(context)
+        )
 
         views.setTextViewText(
-            R.id.title,
-            metadata?.getString(MediaMetadata.METADATA_KEY_TITLE)
-                ?: context.getString(R.string.nothing_playing)
+            R.id.title, shown?.title ?: context.getString(R.string.nothing_playing)
         )
-        // Some players put an internal chapter id in DISPLAY_SUBTITLE and the
-        // publisher in ARTIST, so prefer the publisher and keep the id only as
-        // a last resort.
         views.setTextViewText(
-            R.id.subtitle,
-            metadata?.getString(MediaMetadata.METADATA_KEY_ARTIST)
-                ?: metadata?.getString(MediaMetadata.METADATA_KEY_ALBUM_ARTIST)
-                ?: metadata?.getString(MediaMetadata.METADATA_KEY_DISPLAY_SUBTITLE)
-                ?: context.getString(R.string.open_player_hint)
+            R.id.subtitle, shown?.subtitle ?: context.getString(R.string.open_player_hint)
         )
 
         if (size.hasCover) {
-            val art = metadata?.let {
-                it.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
-                    ?: it.getBitmap(MediaMetadata.METADATA_KEY_ART)
-                    ?: it.getBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON)
-            }
+            val art = shown?.art
             if (art != null) {
-                views.setImageViewBitmap(R.id.cover, prepareArt(art))
+                views.setImageViewBitmap(R.id.cover, art)
             } else {
                 views.setImageViewResource(R.id.cover, R.drawable.ic_cover_placeholder)
             }
@@ -101,12 +92,13 @@ object WidgetRender {
 
         views.setImageViewResource(
             R.id.play_pause,
-            if (MediaSessions.isPlaying(state)) R.drawable.ic_pause else R.drawable.ic_play
+            if (live != null && MediaSessions.isPlaying(state)) R.drawable.ic_pause
+            else R.drawable.ic_play
         )
 
         if (size.hasProgress) {
-            val duration = metadata?.getLong(MediaMetadata.METADATA_KEY_DURATION) ?: 0L
-            val position = MediaSessions.currentPosition(state)
+            val duration = shown?.durationMs ?: 0L
+            val position = shown?.positionMs ?: 0L
             if (duration > 0) {
                 val pct = ((position.toDouble() / duration) * 1000).toInt().coerceIn(0, 1000)
                 views.setProgressBar(R.id.progress, 1000, pct, false)
@@ -120,12 +112,51 @@ object WidgetRender {
             }
         }
 
-        views.setOnClickPendingIntent(R.id.rewind_btn, broadcast(context, ACTION_REWIND))
-        views.setOnClickPendingIntent(R.id.play_pause_btn, broadcast(context, ACTION_PLAY_PAUSE))
-        views.setOnClickPendingIntent(R.id.forward_btn, broadcast(context, ACTION_FORWARD))
+        if (controller != null) {
+            views.setOnClickPendingIntent(R.id.rewind_btn, broadcast(context, ACTION_REWIND))
+            views.setOnClickPendingIntent(R.id.play_pause_btn, broadcast(context, ACTION_PLAY_PAUSE))
+            views.setOnClickPendingIntent(R.id.forward_btn, broadcast(context, ACTION_FORWARD))
+        } else {
+            // No session means nothing to send commands to, and a receiver may
+            // not start an activity from the background, so every button opens
+            // the player directly to bring it back.
+            val player = openPlayer(context)
+            views.setOnClickPendingIntent(R.id.rewind_btn, player)
+            views.setOnClickPendingIntent(R.id.play_pause_btn, player)
+            views.setOnClickPendingIntent(R.id.forward_btn, player)
+        }
         views.setOnClickPendingIntent(R.id.text_block, openPlayer(context))
         if (size.hasCover) views.setOnClickPendingIntent(R.id.cover, openPlayer(context))
         return views
+    }
+
+    /**
+     * What the live session is showing, saved to [LastPlayed] on the way
+     * through. Null when the session has no title, which players do while
+     * they are still starting up or after they have been reset.
+     */
+    private fun nowPlaying(context: Context, controller: MediaController): LastPlayed.Snapshot? {
+        val metadata = controller.metadata ?: return null
+        val title = metadata.getString(MediaMetadata.METADATA_KEY_TITLE) ?: return null
+        // Some players put an internal chapter id in DISPLAY_SUBTITLE and the
+        // publisher in ARTIST, so prefer the publisher and keep the id only as
+        // a last resort.
+        val subtitle = metadata.getString(MediaMetadata.METADATA_KEY_ARTIST)
+            ?: metadata.getString(MediaMetadata.METADATA_KEY_ALBUM_ARTIST)
+            ?: metadata.getString(MediaMetadata.METADATA_KEY_DISPLAY_SUBTITLE)
+        val art = (metadata.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
+            ?: metadata.getBitmap(MediaMetadata.METADATA_KEY_ART)
+            ?: metadata.getBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON))
+            ?.let { prepareArt(it) }
+        val snapshot = LastPlayed.Snapshot(
+            title = title,
+            subtitle = subtitle,
+            art = art,
+            durationMs = metadata.getLong(MediaMetadata.METADATA_KEY_DURATION),
+            positionMs = MediaSessions.currentPosition(controller.playbackState)
+        )
+        LastPlayed.save(context, controller.packageName, snapshot)
+        return snapshot
     }
 
     private fun renderSetupNeeded(context: Context, views: RemoteViews, size: Size) {
