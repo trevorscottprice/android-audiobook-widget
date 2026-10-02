@@ -173,7 +173,9 @@ object MediaSessions {
     }
 
     private const val RESUME_HOLD_MS = 3000L
-    private const val RESUME_TIMEOUT_MS = 8000L
+    // A player evicted hours ago starts cold, which can take a while. A
+    // widget broadcast is a background one, allowed up to a minute.
+    private const val RESUME_TIMEOUT_MS = 15000L
 
     fun isPlaying(state: PlaybackState?): Boolean =
         state?.state == PlaybackState.STATE_PLAYING

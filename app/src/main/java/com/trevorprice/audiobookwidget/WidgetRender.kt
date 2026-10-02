@@ -29,7 +29,6 @@ object WidgetRender {
     const val ACTION_PLAY_PAUSE = "com.trevorprice.audiobookwidget.PLAY_PAUSE"
     const val ACTION_REWIND = "com.trevorprice.audiobookwidget.REWIND"
     const val ACTION_FORWARD = "com.trevorprice.audiobookwidget.FORWARD"
-    const val ACTION_RESUME = "com.trevorprice.audiobookwidget.RESUME"
 
     /** Cover art travels to the launcher over IPC, so keep it small. */
     private const val ART_PX = 256
@@ -119,16 +118,16 @@ object WidgetRender {
             views.setOnClickPendingIntent(R.id.forward_btn, broadcast(context, ACTION_FORWARD))
         } else {
             // No session means nothing to send commands to. Play can still wake
-            // a player that publishes a media browser; everything else opens
-            // the player, since a receiver may not start an activity from the
-            // background.
+            // a player that publishes a media browser (the receiver resumes it
+            // when it finds no session); everything else opens the player,
+            // since a receiver may not start an activity from the background.
             val player = openPlayer(context)
             val canResume = MediaSessions.targetPackage(context)
                 ?.let { MediaSessions.browserService(context, it) } != null
             views.setOnClickPendingIntent(R.id.rewind_btn, player)
             views.setOnClickPendingIntent(
                 R.id.play_pause_btn,
-                if (canResume) broadcast(context, ACTION_RESUME) else player
+                if (canResume) broadcast(context, ACTION_PLAY_PAUSE) else player
             )
             views.setOnClickPendingIntent(R.id.forward_btn, player)
         }

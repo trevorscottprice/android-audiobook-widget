@@ -28,25 +28,33 @@ class AudiobookWidgetProvider : AppWidgetProvider() {
      */
     override fun onReceive(context: Context, intent: Intent) {
         when (intent.action) {
-            WidgetRender.ACTION_PLAY_PAUSE,
-            WidgetRender.ACTION_REWIND,
-            WidgetRender.ACTION_FORWARD -> {
-                WidgetRender.handleTransport(context, intent.action!!)
-                // Nudge the widgets right away; the session callback corrects
-                // them a moment later once the player has actually reacted.
-                WidgetRender.updateAll(context)
-            }
+            WidgetRender.ACTION_PLAY_PAUSE ->
+                // The widget may have been drawn hours ago, while the player
+                // still had a session it has since lost to being killed. So
+                // decide here, at tap time, rather than trusting the drawing.
+                if (MediaSessions.controller(context) != null) transport(context, intent.action!!)
+                else resume(context)
 
-            WidgetRender.ACTION_RESUME -> {
-                // Waking the player takes a few seconds of binding, longer
-                // than onReceive may block, so hold the broadcast open.
-                val pending = goAsync()
-                MediaSessions.resume(context) {
-                    WidgetRender.updateAll(context)
-                    pending.finish()
-                }
-            }
+            WidgetRender.ACTION_REWIND,
+            WidgetRender.ACTION_FORWARD -> transport(context, intent.action!!)
         }
         super.onReceive(context, intent)
+    }
+
+    private fun transport(context: Context, action: String) {
+        WidgetRender.handleTransport(context, action)
+        // Nudge the widgets right away; the session callback corrects
+        // them a moment later once the player has actually reacted.
+        WidgetRender.updateAll(context)
+    }
+
+    private fun resume(context: Context) {
+        // Waking the player takes a few seconds of binding, longer
+        // than onReceive may block, so hold the broadcast open.
+        val pending = goAsync()
+        MediaSessions.resume(context) {
+            WidgetRender.updateAll(context)
+            pending.finish()
+        }
     }
 }
