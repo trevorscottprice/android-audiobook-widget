@@ -78,9 +78,18 @@ no cover art:
 | --- | --- |
 | ![4x1 widget, dark theme](docs/widget-compact-dark.png) | ![4x1 widget, light theme](docs/widget-compact-light.png) |
 
-**2x2** square: title, controls and the clock stacked under them. **2x2 cover**
-is the same square laid over the book's cover art, edge to edge, with the clock
-drawn on the art.
+**2x2** square: title, controls and the clock stacked under them:
+
+| Dark | Light |
+| --- | --- |
+| ![2x2 widget, dark theme](docs/widget-square-dark.png) | ![2x2 widget, light theme](docs/widget-square-light.png) |
+
+**2x2 cover** is the same square laid over the book's cover art, edge to edge,
+with the clock drawn on the art. The art sets the look, so both themes match:
+
+| Dark | Light |
+| --- | --- |
+| ![2x2 cover widget, dark theme](docs/widget-square-cover-dark.png) | ![2x2 cover widget, light theme](docs/widget-square-cover-light.png) |
 
 All of them follow the system theme. Cover art shown belongs to its respective
 publisher and appears only to illustrate the layout.
