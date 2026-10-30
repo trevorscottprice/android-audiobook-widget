@@ -5,10 +5,24 @@
     <!-- Widget -->
     <string name="nothing_playing">Nothing playing</string>
     <string name="open_player_hint">Tap to open your player</string>
-    <string name="time_left">-%1$s left</string>
+    <string name="time_left">-%1$s</string>
     <string name="track_of">Track %1$d of %2$d</string>
     <string name="setup_needed_title">Tap to set up</string>
     <string name="setup_needed_body">Notification access is required</string>
+    <string name="starting_player">Starting %1$s…</string>
+    <!-- Shown in the one-line subtitle for a few seconds, so keep them short. -->
+    <string name="player_not_running">%1$s isn\'t running</string>
+    <string name="player_idle">Nothing loaded. Press play.</string>
+    <string name="player_no_response">%1$s didn\'t respond</string>
+    <string name="player_wont_start">Couldn\'t start %1$s</string>
+    <string name="player_fallback_name">Your player</string>
+    <!-- Sample content for the widget picker's previews. Every one is
+         replaced on the first draw, so a placed widget never shows them. -->
+    <string name="preview_title">Your audiobook</string>
+    <string name="preview_subtitle">Track 3 of 12</string>
+    <string name="preview_skip" translatable="false">30</string>
+    <string name="preview_elapsed" translatable="false">12:34</string>
+    <string name="preview_left" translatable="false">-45:26</string>
     <string name="cd_cover">Cover art</string>
     <string name="cd_rewind">Skip back</string>
     <string name="cd_forward">Skip forward</string>
@@ -16,7 +30,11 @@
     <string name="widget_description">Play, pause and skip the audiobook you are listening to.</string>
     <string name="widget_full_name">Audiobook Widget</string>
     <string name="widget_compact_name">Audiobook Widget (compact)</string>
-    <string name="widget_compact_description">A single-row bar: book info, play, pause and skip. No cover art.</string>
+    <string name="widget_compact_description">A slim bar: book info, play, pause, skip and progress. No cover art.</string>
+    <string name="widget_square_name">Audiobook Widget (square)</string>
+    <string name="widget_square_cover_name">Audiobook Widget (square, cover)</string>
+    <string name="widget_square_description">Title, controls and progress in a 2x2 square.</string>
+    <string name="widget_square_cover_description">The cover fills the square, with the title, controls and progress over it.</string>
 
     <!-- Setup screen -->
     <string name="setup_heading">Audiobook Widget</string>
@@ -39,6 +57,9 @@
     <string name="skip_15">15s</string>
     <string name="skip_30">30s</string>
     <string name="skip_60">60s</string>
+
+    <string name="step_feedback">4. Tap feedback</string>
+    <string name="haptics_label">Vibrate when a widget button is pressed</string>
 
     <string name="setup_outro">Now long-press your home screen, choose Widgets, and drag Audiobook Widget onto it. Start a book in your player and the widget fills in.</string>
 </resources>

@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android"
-    android:shape="oval">
-    <solid android:color="@color/btn_bg" />
-</shape>
+<!-- The play button at rest. The ripple is drawn by the launcher the moment a
+     finger lands, before the tap has even reached us. -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="@color/ripple_play">
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="@color/btn_bg" />
+        </shape>
+    </item>
+</ripple>

@@ -8,5 +8,17 @@
     <color name="progress_fill">#FF1E7A6F</color>
     <color name="progress_bg">#33000000</color>
     <color name="cover_bg">#FFE3E7EA</color>
+    <!-- Button press and acknowledgement. -->
+    <color name="ripple_skip">#26000000</color>
+    <color name="ripple_play">#59FFFFFF</color>
+    <color name="flash_ok">#401E7A6F</color>
+    <color name="flash_error">#40D93025</color>
+    <color name="time_glow">#80FFD54F</color>
+    <color name="btn_bg_ok">#FF2FA897</color>
+    <color name="btn_bg_error">#FFC5352B</color>
+    <!-- Text over cover art, the same in both themes. -->
+    <color name="on_art_text">#FFFFFFFF</color>
+    <color name="on_art_text_dim">#C2FFFFFF</color>
+    <color name="on_art_shadow">#FF000000</color>
     <color name="launcher_bg">#FF1E7A6F</color>
 </resources>

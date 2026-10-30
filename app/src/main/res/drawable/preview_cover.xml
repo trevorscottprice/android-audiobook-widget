@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A stand-in book cover for the widget picker's previews. Never seen on a
+     placed widget: the first draw replaces it with the real cover or the
+     placeholder. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="96dp"
+    android:height="96dp"
+    android:viewportWidth="96"
+    android:viewportHeight="96">
+
+    <!-- Dusk sky. -->
+    <path android:pathData="M0,0h96v96h-96z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:endX="0"
+                android:endY="96"
+                android:startX="0"
+                android:startY="0"
+                android:type="linear">
+                <item android:color="#FF1D3557" android:offset="0" />
+                <item android:color="#FF457B9D" android:offset="0.55" />
+                <item android:color="#FFE9A86B" android:offset="1" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Low sun. -->
+    <path
+        android:fillColor="#FFF4D58D"
+        android:pathData="M48,70m-14,0a14,14 0,1 1,28 0a14,14 0,1 1,-28 0" />
+
+    <!-- Hills. -->
+    <path
+        android:fillColor="#FF2A4B5E"
+        android:pathData="M0,74 L22,60 L40,70 L62,54 L96,72 L96,96 L0,96Z" />
+    <path
+        android:fillColor="#FF16303F"
+        android:pathData="M0,84 L30,74 L54,82 L78,72 L96,80 L96,96 L0,96Z" />
+
+    <!-- Title and author, as blocks of type. -->
+    <path
+        android:fillColor="#F2FFFFFF"
+        android:pathData="M18,16h60v7h-60z M26,27h44v7h-44z" />
+    <path
+        android:fillColor="#B3FFFFFF"
+        android:pathData="M32,40h32v3h-32z" />
+</vector>

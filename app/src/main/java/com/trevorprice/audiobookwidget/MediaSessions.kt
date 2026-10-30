@@ -3,6 +3,7 @@ package com.trevorprice.audiobookwidget
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.media.browse.MediaBrowser
 import android.media.session.MediaController
 import android.media.session.MediaSessionManager
@@ -26,6 +27,7 @@ object MediaSessions {
     private const val PREFS = "audiobook_widget"
     private const val KEY_PKG = "target_pkg"
     private const val KEY_SKIP = "skip_seconds"
+    private const val KEY_HAPTICS = "haptics"
 
     const val DEFAULT_SKIP_SECONDS = 30
 
@@ -64,6 +66,25 @@ object MediaSessions {
     fun setSkipSeconds(ctx: Context, seconds: Int) {
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit().putInt(KEY_SKIP, seconds).apply()
+    }
+
+    fun hapticsEnabled(ctx: Context): Boolean =
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_HAPTICS, true)
+
+    fun setHapticsEnabled(ctx: Context, enabled: Boolean) {
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit().putBoolean(KEY_HAPTICS, enabled).apply()
+    }
+
+    /** The chosen player's name as the user knows it, for messages. */
+    fun playerLabel(ctx: Context): String {
+        val pkg = targetPackage(ctx) ?: return ctx.getString(R.string.player_fallback_name)
+        val pm = ctx.packageManager
+        return try {
+            pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString()
+        } catch (e: PackageManager.NameNotFoundException) {
+            ctx.getString(R.string.player_fallback_name)
+        }
     }
 
     /**
@@ -179,6 +200,22 @@ object MediaSessions {
 
     fun isPlaying(state: PlaybackState?): Boolean =
         state?.state == PlaybackState.STATE_PLAYING
+
+    /**
+     * Playing or on its way there. A player still buffering after Play has
+     * heard us, and the button it needs next is Pause.
+     */
+    fun isActive(state: PlaybackState?): Boolean = when (state?.state) {
+        PlaybackState.STATE_PLAYING,
+        PlaybackState.STATE_BUFFERING,
+        PlaybackState.STATE_CONNECTING,
+        PlaybackState.STATE_FAST_FORWARDING,
+        PlaybackState.STATE_REWINDING,
+        PlaybackState.STATE_SKIPPING_TO_NEXT,
+        PlaybackState.STATE_SKIPPING_TO_PREVIOUS,
+        PlaybackState.STATE_SKIPPING_TO_QUEUE_ITEM -> true
+        else -> false
+    }
 
     /**
      * PlaybackState.position is a snapshot from lastPositionUpdateTime, so while

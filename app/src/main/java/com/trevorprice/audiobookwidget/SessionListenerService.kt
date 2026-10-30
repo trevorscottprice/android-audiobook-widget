@@ -8,6 +8,7 @@ import android.media.session.MediaSessionManager
 import android.media.session.PlaybackState
 import android.os.Handler
 import android.os.Looper
+import android.os.PowerManager
 import android.service.notification.NotificationListenerService
 
 /**
@@ -39,15 +40,22 @@ class SessionListenerService : NotificationListenerService() {
             pushUpdate()
         }
 
-    /** While playing, keep the progress bar and remaining time moving. */
+    /**
+     * While playing, keep the clock moving: every second while the screen is
+     * on, and only now and then while nobody can see it.
+     */
     private val ticker = object : Runnable {
         override fun run() {
-            WidgetRender.updateAll(this@SessionListenerService)
-            if (MediaSessions.isPlaying(watched?.playbackState)) {
-                handler.postDelayed(this, TICK_MS)
+            if (power.isInteractive) {
+                WidgetRender.updateClock(this@SessionListenerService)
+            } else {
+                WidgetRender.updateAll(this@SessionListenerService)
             }
+            scheduleTick()
         }
     }
+
+    private val power by lazy { getSystemService(PowerManager::class.java) }
 
     override fun onListenerConnected() {
         super.onListenerConnected()
@@ -81,11 +89,27 @@ class SessionListenerService : NotificationListenerService() {
 
     private fun pushUpdate() {
         handler.removeCallbacks(ticker)
-        handler.post(ticker)
+        WidgetRender.updateAll(this)
+        scheduleTick()
+    }
+
+    private fun scheduleTick() {
+        val state = watched?.playbackState
+        if (!MediaSessions.isPlaying(state)) return
+        if (!power.isInteractive) {
+            handler.postDelayed(ticker, TICK_MS)
+            return
+        }
+        // Land just after the clock rolls over to the next second, so no
+        // second is shown twice or skipped. Faster playback gets there sooner.
+        val speed = state!!.playbackSpeed.takeIf { it > 0f } ?: 1f
+        val untilNext = 1000 - MediaSessions.currentPosition(state) % 1000
+        handler.postDelayed(ticker, (untilNext / speed).toLong() + CLOCK_SLACK_MS)
     }
 
     companion object {
         private const val TICK_MS = 5000L
+        private const val CLOCK_SLACK_MS = 20L
 
         /** Ask the system to (re)bind us, e.g. right after access is granted. */
         fun requestRebind(context: Context) {

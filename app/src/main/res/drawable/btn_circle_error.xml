@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Brief warning when the player could not be reached or did not respond. -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="@color/ripple_play">
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="@color/btn_bg_error" />
+        </shape>
+    </item>
+</ripple>

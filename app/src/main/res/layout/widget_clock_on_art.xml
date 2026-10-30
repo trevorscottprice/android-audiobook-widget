@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The clock for the 2x2s: too narrow for the times either side of the bar,
+     so the bar gets its own line and the times sit under its two ends. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="4dp"
+    android:clipChildren="false"
+    android:clipToPadding="false"
+    android:orientation="vertical"
+    android:paddingStart="6dp"
+    android:paddingEnd="6dp">
+
+    <ProgressBar
+        android:id="@+id/progress"
+        android:progress="220"
+        style="@android:style/Widget.ProgressBar.Horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="4dp"
+        android:max="1000"
+        android:progressDrawable="@drawable/progress_track_on_art" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:clipChildren="false"
+        android:orientation="horizontal">
+
+        <!-- The highlight is pulled out by its own padding so the time itself
+             stays where it was. Its flipper sits on the empty view until a skip,
+             and is pinned to the time's edges: a match_parent child of a
+             wrap_content frame with nothing else to size it comes out 0x0. -->
+        <FrameLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="-5dp">
+
+            <RelativeLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="start">
+
+                <ViewFlipper
+                    android:id="@+id/elapsed_glow"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignStart="@id/elapsed_flip"
+                    android:layout_alignTop="@id/elapsed_flip"
+                    android:layout_alignEnd="@id/elapsed_flip"
+                    android:layout_alignBottom="@id/elapsed_flip"
+                    android:inAnimation="@anim/glow_fade">
+
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent" />
+
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@drawable/time_glow" />
+                </ViewFlipper>
+
+                <ViewFlipper
+                    android:id="@+id/elapsed_flip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingStart="5dp"
+                    android:paddingEnd="5dp"
+                    android:inAnimation="@anim/clock_in"
+                    android:outAnimation="@anim/clock_out">
+
+                    <TextView
+                        android:id="@+id/elapsed"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="start"
+                        android:text="@string/preview_elapsed"
+                        android:fontFeatureSettings="tnum"
+                        android:maxLines="1"
+                        android:textColor="@color/on_art_text_dim"
+                        android:textSize="11sp" />
+
+                    <TextView
+                        android:id="@+id/elapsed_alt"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="start"
+                        android:text="@string/preview_elapsed"
+                        android:fontFeatureSettings="tnum"
+                        android:maxLines="1"
+                        android:textColor="@color/on_art_text_dim"
+                        android:textSize="11sp" />
+                </ViewFlipper>
+            </RelativeLayout>
+        </FrameLayout>
+
+        <ViewFlipper
+            android:id="@+id/time_left_flip"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:inAnimation="@anim/clock_in"
+            android:outAnimation="@anim/clock_out">
+
+            <TextView
+                android:id="@+id/time_left"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end"
+                android:text="@string/preview_left"
+                android:fontFeatureSettings="tnum"
+                android:maxLines="1"
+                android:textColor="@color/on_art_text_dim"
+                android:textSize="11sp" />
+
+            <TextView
+                android:id="@+id/time_left_alt"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end"
+                android:text="@string/preview_left"
+                android:fontFeatureSettings="tnum"
+                android:maxLines="1"
+                android:textColor="@color/on_art_text_dim"
+                android:textSize="11sp" />
+        </ViewFlipper>
+    </LinearLayout>
+</LinearLayout>

@@ -5,23 +5,29 @@ import android.appwidget.AppWidgetProvider
 import android.content.Context
 
 /**
- * The 4x1 widget: book info and controls only, no cover art and no progress
- * bar. Button taps are broadcast to [AudiobookWidgetProvider], which handles
- * transport for every size.
+ * A size that only draws. Button taps are broadcast to
+ * [AudiobookWidgetProvider], which handles transport for every size.
  */
-class CompactWidgetProvider : AppWidgetProvider() {
+abstract class DrawOnlyWidgetProvider(private val size: WidgetRender.Size) : AppWidgetProvider() {
 
     override fun onUpdate(
         context: Context,
         appWidgetManager: AppWidgetManager,
         appWidgetIds: IntArray
     ) {
-        appWidgetManager.updateAppWidget(
-            appWidgetIds, WidgetRender.build(context, WidgetRender.Size.COMPACT)
-        )
+        appWidgetManager.updateAppWidget(appWidgetIds, WidgetRender.build(context, size))
     }
 
     override fun onEnabled(context: Context) {
         SessionListenerService.requestRebind(context)
     }
 }
+
+/** The 4x1 widget: book info, controls and the clock, no cover art. */
+class CompactWidgetProvider : DrawOnlyWidgetProvider(WidgetRender.Size.COMPACT)
+
+/** 2x2: title, controls and clock. */
+class SquareWidgetProvider : DrawOnlyWidgetProvider(WidgetRender.Size.SQUARE)
+
+/** 2x2 cover tile: the plain 2x2 laid over the cover art. */
+class SquareCoverWidgetProvider : DrawOnlyWidgetProvider(WidgetRender.Size.SQUARE_COVER)

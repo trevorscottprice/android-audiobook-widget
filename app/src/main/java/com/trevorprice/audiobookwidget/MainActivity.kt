@@ -7,13 +7,14 @@ import android.os.Bundle
 import android.provider.Settings
 import android.view.View
 import android.widget.Button
+import android.widget.Switch
 import android.widget.TextView
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 
 /**
  * One-time setup: grant notification access, confirm which app to control,
- * and pick how far the skip buttons jump.
+ * pick how far the skip buttons jump, and whether a press buzzes.
  */
 class MainActivity : Activity() {
 
@@ -23,6 +24,7 @@ class MainActivity : Activity() {
     private lateinit var accessButton: Button
     private lateinit var appStatus: TextView
     private lateinit var skipButtons: List<Button>
+    private lateinit var hapticsSwitch: Switch
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,6 +49,11 @@ class MainActivity : Activity() {
             startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
         }
         findViewById<Button>(R.id.app_button).setOnClickListener { showAppPicker() }
+
+        hapticsSwitch = findViewById(R.id.haptics_switch)
+        hapticsSwitch.setOnCheckedChangeListener { _, checked ->
+            MediaSessions.setHapticsEnabled(this, checked)
+        }
 
         skipButtons.forEachIndexed { index, button ->
             button.setOnClickListener {
@@ -87,6 +94,8 @@ class MainActivity : Activity() {
         skipButtons.forEachIndexed { index, button ->
             button.isEnabled = skipChoices[index] != skip
         }
+
+        hapticsSwitch.isChecked = MediaSessions.hapticsEnabled(this)
 
         WidgetRender.updateAll(this)
     }

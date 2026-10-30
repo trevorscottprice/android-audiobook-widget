@@ -4,7 +4,7 @@
 
 An Android home screen widget for audiobook players, in the spirit of Audible's:
 cover art, book title, skip back / play-pause / skip forward, and a progress bar
-with time remaining.
+with elapsed and remaining time.
 
 ## Why not a generic media widget?
 
@@ -25,8 +25,8 @@ built for music, though, and a book is not an album:
 - **The subtitle prefers the publisher.** Some players put an internal chapter
   id in `DISPLAY_SUBTITLE` (Chirp shows things like `WARBREAKER1P02`), so
   `METADATA_KEY_ARTIST` is tried first.
-- **No permissions, no network, no accounts.** The manifest declares zero
-  `uses-permission` entries; it cannot reach the internet, so there is nothing
+- **No network, no accounts.** The manifest's one `uses-permission` is
+  `VIBRATE`, for the buzz when a button press lands; it cannot reach the internet, so there is nothing
   to serve ads or telemetry with. Notification access is the one thing you
   grant, and it is what the media-session API requires.
 
@@ -50,7 +50,7 @@ you get depends on what the player's session advertises:
 | `METADATA_KEY_TITLE` | Book title |
 | `METADATA_KEY_ARTIST` | Subtitle (publisher or narrator) |
 | `METADATA_KEY_ALBUM_ART` | Cover art |
-| `METADATA_KEY_DURATION` | Progress bar and time remaining |
+| `METADATA_KEY_DURATION` | Progress bar, elapsed and remaining time |
 | `ACTION_SEEK_TO` | Skips of exactly the configured amount |
 | `ACTION_REWIND` / `ACTION_FAST_FORWARD` | Fallback skips, at the player's own interval |
 
@@ -64,14 +64,15 @@ anything else, pick the app from a list in the setup screen.
 > Not affiliated with, endorsed by, or sponsored by Chirp, BookBub, Audible, or
 > any other player. It contains no code or assets from those apps.
 
-Two sizes. **4x2** with cover art, progress and time remaining:
+Two sizes, both with a full-width progress bar showing elapsed and remaining
+time along the bottom. **4x2** with cover art:
 
 | Dark | Light |
 | --- | --- |
 | ![4x2 widget, dark theme](docs/widget-dark.png) | ![4x2 widget, light theme](docs/widget-light.png) |
 
 **4x1** compact, for when a row is all you can spare — book info and controls,
-no cover art and no progress bar:
+no cover art:
 
 | Dark | Light |
 | --- | --- |
@@ -94,12 +95,17 @@ is used, and the player's servers are never contacted.
 - `WidgetRender` holds the rendering and transport logic shared by every size.
   A `Size` enum pairs each layout with flags for the optional pieces it
   contains; RemoteViews throws if you address a view id the layout does not
-  have, so `hasCover` / `hasProgress` are load-bearing rather than cosmetic.
+  have, so `hasCover` is load-bearing rather than cosmetic. The clock row is
+  shared by every size, from `res/layout/widget_clock.xml`.
 - `AudiobookWidgetProvider` (4x2) and `CompactWidgetProvider` (4x1) each render
   their size. Both aim their buttons at `AudiobookWidgetProvider`, which handles
   transport for every size and then repaints all placed widgets: a receiver is
   live whether or not an instance of its size is on screen.
-- `MediaSessions` locates the player's session and holds the two preferences.
+- `Feedback` lets the widget answer a tap before the player does: it draws the
+  expected play state and seek position at once, tints the pressed button, and
+  puts a short error in the subtitle when the player cannot be reached.
+  `Haptics` adds a click when a press arrives and a double click on failure.
+- `MediaSessions` locates the player's session and holds the preferences.
 - `MainActivity` is the one-time setup screen.
 
 Skip buttons prefer an explicit `seekTo` so the jump is exactly the configured
@@ -202,23 +208,27 @@ sizes, comes out ~17% smaller than written.
 
 **The right column must be `match_parent`.** If it is `wrap_content` the whole
 block floats vertically and leaves dead bands above and below, no matter how
-large the individual elements get. It fills the height, with the control row on
-`layout_weight="1"` so the title pins to the top, the progress row pins to the
-bottom, and the buttons take up the slack in between.
+large the individual elements get. It fills the height of the row above the
+clock, with the control row on `layout_weight="1"` so the title pins to the top
+and the buttons take up the slack below it. The clock row runs under both the
+cover and the column, at the full widget width.
 
 Current 4x2 sizes: cover 112dp, all three buttons 68dp, glyphs 64dp, title 17sp.
 The control row needs `3 x 68 + 2 x 8 = 220dp`, against roughly 236dp of column
 width — so growing the buttons further means shrinking the cover first.
 
 The 4x1 has no cover to trade against, so its buttons are 56dp and the text
-block takes whatever width is left.
+block takes whatever width is left. With the clock under them it needs about
+88dp of height, which a one-cell row on current phones has.
 
 ## Notes
 
 - Built with the debug key, so `adb install` works directly. It is not
   Play-Store-signed.
-- The widget refreshes every 5 seconds while playing and instantly on any
-  play / pause / track change.
+- While playing and the screen is on, the clock ticks every second as a partial
+  update carrying only the clock, never the cover art. With the screen off it
+  falls back to a full repaint every 5 seconds. Any play / pause / track change
+  repaints at once.
 - Cover art is scaled to 256px before crossing to the launcher; RemoteViews have
   a hard IPC size limit and full-size art will blow past it.
 - The player's package name is stored in preferences, not hardcoded at runtime.

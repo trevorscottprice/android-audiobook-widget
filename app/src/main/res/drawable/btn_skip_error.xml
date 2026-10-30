@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Brief warning when there was no player to skip. -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="@color/ripple_skip">
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="@color/flash_error" />
+        </shape>
+    </item>
+</ripple>

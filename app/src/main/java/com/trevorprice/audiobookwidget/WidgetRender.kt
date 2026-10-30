@@ -14,6 +14,7 @@ import android.graphics.RectF
 import android.media.MediaMetadata
 import android.media.session.MediaController
 import android.media.session.PlaybackState
+import android.view.View
 import android.widget.RemoteViews
 import java.util.Locale
 
@@ -30,20 +31,34 @@ object WidgetRender {
     const val ACTION_REWIND = "com.trevorprice.audiobookwidget.REWIND"
     const val ACTION_FORWARD = "com.trevorprice.audiobookwidget.FORWARD"
 
-    /** Cover art travels to the launcher over IPC, so keep it small. */
-    private const val ART_PX = 256
+    /**
+     * Cover art travels to the launcher over IPC, so keep it small: large
+     * enough to fill a 2x2 edge to edge, and shrunk again for the thumbnail.
+     */
+    private const val ART_PX = 384
+    private const val THUMB_PX = 256
 
     enum class Size(
         val layout: Int,
         val provider: Class<*>,
         val hasCover: Boolean,
-        val hasProgress: Boolean
+        /** The cover fills the layout's `backdrop`, edge to edge behind it all. */
+        val fullBleed: Boolean = false
     ) {
-        /** 4x2: cover art, titles, controls, progress and time remaining. */
-        FULL(R.layout.widget_player, AudiobookWidgetProvider::class.java, true, true),
+        /** 4x2: cover art, titles and controls, over the clock. */
+        FULL(R.layout.widget_player, AudiobookWidgetProvider::class.java, true),
 
-        /** 4x1: titles and controls only. */
-        COMPACT(R.layout.widget_compact, CompactWidgetProvider::class.java, false, false)
+        /** 4x1: titles and controls only, over the clock. */
+        COMPACT(R.layout.widget_compact, CompactWidgetProvider::class.java, false),
+
+        /** 2x2: titles, controls and a stacked clock. */
+        SQUARE(R.layout.widget_square, SquareWidgetProvider::class.java, false),
+
+        /** 2x2: the plain 2x2 laid over the cover, edge to edge. */
+        SQUARE_COVER(
+            R.layout.widget_square_cover, SquareCoverWidgetProvider::class.java, false,
+            fullBleed = true
+        )
     }
 
     /** Repaints every placed instance of every size. */
@@ -55,11 +70,30 @@ object WidgetRender {
         }
     }
 
+    /**
+     * Moves only the clock. Sent every second while playing, so it leaves out
+     * everything else, the cover art above all.
+     */
+    fun updateClock(context: Context) {
+        val controller = MediaSessions.controller(context) ?: return
+        val duration = controller.metadata?.getLong(MediaMetadata.METADATA_KEY_DURATION) ?: return
+        val position = Feedback.position(controller.playbackState)
+        val manager = AppWidgetManager.getInstance(context)
+        for (size in Size.entries) {
+            val ids = manager.getAppWidgetIds(ComponentName(context, size.provider))
+            if (ids.isEmpty()) continue
+            val views = RemoteViews(context.packageName, size.layout)
+            paintClock(context, views, size, duration, position)
+            manager.partiallyUpdateAppWidget(ids, views)
+        }
+    }
+
     fun build(context: Context, size: Size): RemoteViews {
         val views = RemoteViews(context.packageName, size.layout)
         val skip = MediaSessions.skipSeconds(context)
         views.setTextViewText(R.id.rewind_label, skip.toString())
         views.setTextViewText(R.id.forward_label, skip.toString())
+        paintButtons(views)
 
         if (!MediaSessions.isListenerEnabled(context)) {
             renderSetupNeeded(context, views, size)
@@ -81,36 +115,33 @@ object WidgetRender {
             R.id.subtitle, shown?.subtitle ?: context.getString(R.string.open_player_hint)
         )
 
-        if (size.hasCover) {
-            val art = shown?.art
-            if (art != null) {
-                views.setImageViewBitmap(R.id.cover, art)
-            } else {
-                views.setImageViewResource(R.id.cover, R.drawable.ic_cover_placeholder)
-            }
-        }
+        paintArt(views, size, shown?.art)
 
         views.setImageViewResource(
             R.id.play_pause,
-            if (live != null && MediaSessions.isPlaying(state)) R.drawable.ic_pause
+            if (live != null && Feedback.playing(MediaSessions.isActive(state))) R.drawable.ic_pause
             else R.drawable.ic_play
         )
-
-        if (size.hasProgress) {
-            val duration = shown?.durationMs ?: 0L
-            val position = shown?.positionMs ?: 0L
-            if (duration > 0) {
-                val pct = ((position.toDouble() / duration) * 1000).toInt().coerceIn(0, 1000)
-                views.setProgressBar(R.id.progress, 1000, pct, false)
-                views.setTextViewText(
-                    R.id.time_left,
-                    context.getString(R.string.time_left, formatDuration(duration - position))
-                )
-            } else {
-                views.setProgressBar(R.id.progress, 1000, 0, false)
-                views.setTextViewText(R.id.time_left, "")
-            }
+        val resuming = Feedback.resuming
+        views.setViewVisibility(R.id.play_pause, if (resuming) View.GONE else View.VISIBLE)
+        views.setViewVisibility(R.id.play_busy, if (resuming) View.VISIBLE else View.GONE)
+        val notice = Feedback.message() ?: if (resuming) {
+            context.getString(R.string.starting_player, MediaSessions.playerLabel(context))
+        } else {
+            null
         }
+        if (notice != null) {
+            views.setTextViewText(R.id.subtitle, notice)
+        }
+
+        val skipped = Feedback.takeSkip(size)
+        if (skipped != null) paintSkip(views, skipped)
+        paintClock(
+            context, views, size,
+            duration = shown?.durationMs ?: 0L,
+            position = if (live != null) Feedback.position(state) else shown?.positionMs ?: 0L,
+            jump = skipped != null
+        )
 
         if (controller != null) {
             views.setOnClickPendingIntent(R.id.rewind_btn, broadcast(context, ACTION_REWIND))
@@ -133,6 +164,7 @@ object WidgetRender {
         }
         views.setOnClickPendingIntent(R.id.text_block, openPlayer(context))
         if (size.hasCover) views.setOnClickPendingIntent(R.id.cover, openPlayer(context))
+        if (size.fullBleed) views.setOnClickPendingIntent(R.id.backdrop, openPlayer(context))
         return views
     }
 
@@ -154,7 +186,7 @@ object WidgetRender {
         val art = (metadata.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
             ?: metadata.getBitmap(MediaMetadata.METADATA_KEY_ART)
             ?: metadata.getBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON))
-            ?.let { prepareArt(it) }
+            ?.let { Bitmap.createScaledBitmap(it, ART_PX, ART_PX, true) }
         val snapshot = LastPlayed.Snapshot(
             title = title,
             subtitle = subtitle,
@@ -174,35 +206,167 @@ object WidgetRender {
         views.setTextViewText(R.id.title, context.getString(R.string.setup_needed_title))
         views.setTextViewText(R.id.subtitle, context.getString(R.string.setup_needed_body))
         views.setImageViewResource(R.id.play_pause, R.drawable.ic_play)
-        if (size.hasCover) views.setImageViewResource(R.id.cover, R.drawable.ic_cover_placeholder)
-        if (size.hasProgress) {
-            views.setProgressBar(R.id.progress, 1000, 0, false)
-            views.setTextViewText(R.id.time_left, "")
-        }
+        views.setViewVisibility(R.id.play_pause, View.VISIBLE)
+        views.setViewVisibility(R.id.play_busy, View.GONE)
+        paintArt(views, size, null)
+        paintClock(context, views, size, duration = 0L, position = 0L)
         val settings = openSettings(context)
         views.setOnClickPendingIntent(R.id.text_block, settings)
         views.setOnClickPendingIntent(R.id.rewind_btn, settings)
         views.setOnClickPendingIntent(R.id.play_pause_btn, settings)
         views.setOnClickPendingIntent(R.id.forward_btn, settings)
         if (size.hasCover) views.setOnClickPendingIntent(R.id.cover, settings)
+        if (size.fullBleed) views.setOnClickPendingIntent(R.id.backdrop, settings)
     }
+
+    /** The cover, as a thumbnail or edge to edge, whichever the size has. */
+    private fun paintArt(views: RemoteViews, size: Size, art: Bitmap?) {
+        if (size.hasCover) {
+            if (art != null) {
+                views.setImageViewBitmap(R.id.cover, thumbnail(art))
+            } else {
+                views.setImageViewResource(R.id.cover, R.drawable.ic_cover_placeholder)
+            }
+        }
+        if (size.fullBleed) {
+            if (art != null) {
+                views.setImageViewBitmap(R.id.backdrop, art)
+            } else {
+                views.setImageViewResource(R.id.backdrop, R.drawable.ic_cover_placeholder)
+            }
+        }
+    }
+
+    /**
+     * Where in the track playback is, so a skip has something to be measured
+     * against. Blank until the player reports a length to measure it in.
+     */
+    private fun paintClock(
+        context: Context,
+        views: RemoteViews,
+        size: Size,
+        duration: Long,
+        position: Long,
+        jump: Boolean = false
+    ) {
+        // Flash the highlight on behind the new time, which then fades by
+        // itself. Once faded, back to the flipper's empty view, so a launcher
+        // that drops the animation's end state never shows it stuck on.
+        if (jump) {
+            views.setDisplayedChild(R.id.elapsed_glow, 1)
+        } else if (Feedback.takeGlowEnd(size)) {
+            views.setDisplayedChild(R.id.elapsed_glow, 0)
+        }
+        if (duration > 0) {
+            val pct = ((position.toDouble() / duration) * 1000).toInt().coerceIn(0, 1000)
+            views.setProgressBar(R.id.progress, 1000, pct, false)
+            // Both sides in whole seconds, so they always add up to the length.
+            val elapsed = position / 1000 * 1000
+            paintTime(views, ELAPSED, formatDuration(elapsed), jump)
+            paintTime(
+                views, TIME_LEFT,
+                context.getString(R.string.time_left, formatDuration(duration - elapsed)), jump
+            )
+        } else {
+            views.setProgressBar(R.id.progress, 1000, 0, false)
+            paintTime(views, ELAPSED, "", jump)
+            paintTime(views, TIME_LEFT, "", jump)
+        }
+    }
+
+    /** A time's flipper and its two TextViews. */
+    private class TimeViews(val flip: Int, val sides: IntArray)
+
+    private val ELAPSED = TimeViews(R.id.elapsed_flip, intArrayOf(R.id.elapsed, R.id.elapsed_alt))
+    private val TIME_LEFT =
+        TimeViews(R.id.time_left_flip, intArrayOf(R.id.time_left, R.id.time_left_alt))
+
+    /**
+     * On a skip the new time goes into the hidden view and the flipper fades
+     * across to it, leaving the old time to fade out in the other. Mid-fade
+     * only the incoming view is touched. Otherwise both get the time, so a
+     * flipper the launcher has rebuilt, which starts back on its first view,
+     * still shows the right one.
+     */
+    private fun paintTime(views: RemoteViews, time: TimeViews, text: String, jump: Boolean) {
+        val side = Feedback.clockSide
+        when {
+            jump -> {
+                views.setTextViewText(time.sides[side], text)
+                views.setDisplayedChild(time.flip, side)
+            }
+            Feedback.clockFading() -> views.setTextViewText(time.sides[side], text)
+            else -> time.sides.forEach { views.setTextViewText(it, text) }
+        }
+    }
+
+    /** Spins the skip button's arc by flipping to its other copy. */
+    private fun paintSkip(views: RemoteViews, button: Feedback.Button) {
+        val flip = if (button == Feedback.Button.REWIND) R.id.rewind_spin else R.id.forward_spin
+        views.setDisplayedChild(flip, Feedback.spinSide(button))
+    }
+
+    /**
+     * Every render sets the button backgrounds, even with nothing flashing,
+     * because the launcher keeps whatever the last update applied.
+     */
+    private fun paintButtons(views: RemoteViews) {
+        views.setInt(
+            R.id.rewind_btn, "setBackgroundResource", skipBackground(Feedback.Button.REWIND)
+        )
+        views.setInt(
+            R.id.forward_btn, "setBackgroundResource", skipBackground(Feedback.Button.FORWARD)
+        )
+        views.setInt(
+            R.id.play_pause_btn, "setBackgroundResource",
+            when (Feedback.flashing(Feedback.Button.PLAY_PAUSE)) {
+                null -> R.drawable.btn_circle
+                true -> R.drawable.btn_circle_ok
+                false -> R.drawable.btn_circle_error
+            }
+        )
+    }
+
+    private fun skipBackground(button: Feedback.Button): Int =
+        when (Feedback.flashing(button)) {
+            null -> R.drawable.btn_skip
+            true -> R.drawable.btn_skip_ok
+            false -> R.drawable.btn_skip_error
+        }
 
     // ---- transport ---------------------------------------------------------
 
-    fun handleTransport(context: Context, action: String) {
-        val controller = MediaSessions.controller(context) ?: return
+    /**
+     * Sends the command and records what it should look like once the player
+     * follows. False when there is no session to send it to, or for a skip,
+     * when the session has no book loaded: a player relaunched after being
+     * killed publishes an empty one, and a seek in it does nothing.
+     */
+    fun handleTransport(context: Context, action: String): Boolean {
+        val controller = MediaSessions.controller(context) ?: return false
         val transport = controller.transportControls
         val state = controller.playbackState
         val available = state?.actions ?: 0L
         val skipMs = MediaSessions.skipSeconds(context) * 1000L
 
         when (action) {
-            ACTION_PLAY_PAUSE ->
-                if (MediaSessions.isPlaying(state)) transport.pause() else transport.play()
+            // Toggle what the widget is showing, which after a quick earlier
+            // tap may be ahead of what the player has reported.
+            ACTION_PLAY_PAUSE -> {
+                val play = !Feedback.playing(MediaSessions.isActive(state))
+                Feedback.expectPlaying(play)
+                if (play) transport.play() else transport.pause()
+            }
 
-            ACTION_REWIND -> seekBy(controller, -skipMs, available) { transport.rewind() }
-            ACTION_FORWARD -> seekBy(controller, skipMs, available) { transport.fastForward() }
+            ACTION_REWIND, ACTION_FORWARD -> {
+                if (controller.metadata == null) return false
+                val delta = if (action == ACTION_REWIND) -skipMs else skipMs
+                seekBy(controller, delta, available) {
+                    if (action == ACTION_REWIND) transport.rewind() else transport.fastForward()
+                }
+            }
         }
+        return true
     }
 
     /**
@@ -219,9 +383,10 @@ object WidgetRender {
         val state = controller.playbackState
         val duration = controller.metadata?.getLong(MediaMetadata.METADATA_KEY_DURATION) ?: 0L
         if (available and PlaybackState.ACTION_SEEK_TO != 0L && state != null) {
-            var target = MediaSessions.currentPosition(state) + deltaMs
+            var target = Feedback.position(state) + deltaMs
             if (target < 0) target = 0
             if (duration > 0 && target > duration) target = duration
+            Feedback.expectPosition(target)
             controller.transportControls.seekTo(target)
         } else {
             fallback()
@@ -233,7 +398,7 @@ object WidgetRender {
     /**
      * Always aimed at [AudiobookWidgetProvider]: a receiver is live whether or
      * not an instance of its size is on screen, and the handling is identical,
-     * so both sizes can share one set of pending intents.
+     * so every size can share one set of pending intents.
      */
     private fun broadcast(context: Context, action: String): PendingIntent {
         val intent = Intent(context, AudiobookWidgetProvider::class.java).setAction(action)
@@ -277,14 +442,14 @@ object WidgetRender {
     }
 
     /** Scale down and round the corners so the art matches the widget shape. */
-    private fun prepareArt(source: Bitmap): Bitmap {
-        val scaled = Bitmap.createScaledBitmap(source, ART_PX, ART_PX, true)
-        val out = Bitmap.createBitmap(ART_PX, ART_PX, Bitmap.Config.ARGB_8888)
+    private fun thumbnail(source: Bitmap): Bitmap {
+        val scaled = Bitmap.createScaledBitmap(source, THUMB_PX, THUMB_PX, true)
+        val out = Bitmap.createBitmap(THUMB_PX, THUMB_PX, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(out)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-        val radius = ART_PX * 0.09f
+        val radius = THUMB_PX * 0.09f
         canvas.drawRoundRect(
-            RectF(0f, 0f, ART_PX.toFloat(), ART_PX.toFloat()), radius, radius, paint
+            RectF(0f, 0f, THUMB_PX.toFloat(), THUMB_PX.toFloat()), radius, radius, paint
         )
         paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
         canvas.drawBitmap(scaled, 0f, 0f, paint)

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+: the widget takes its colours from the system palette, the one
+     drawn from the wallpaper, and re-tints itself when that changes. Errors
+     stay red so they still read as errors. Text over cover art stays white. -->
+<resources>
+    <color name="widget_bg">@android:color/system_accent2_50</color>
+    <color name="widget_text">@android:color/system_neutral1_900</color>
+    <color name="widget_text_dim">@android:color/system_neutral2_600</color>
+    <color name="btn_bg">@android:color/system_accent1_600</color>
+    <color name="btn_fg">@android:color/system_accent1_0</color>
+    <color name="btn_bg_ok">@android:color/system_accent1_400</color>
+    <color name="progress_fill">@android:color/system_accent1_600</color>
+    <color name="progress_bg">@android:color/system_accent2_200</color>
+    <color name="cover_bg">@android:color/system_accent2_100</color>
+</resources>

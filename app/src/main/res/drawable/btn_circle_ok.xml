@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Brief glow once a play or pause has been sent. -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="@color/ripple_play">
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="@color/btn_bg_ok" />
+        </shape>
+    </item>
+</ripple>

@@ -22,7 +22,9 @@ object LastPlayed {
     private const val KEY_POSITION = "position"
     private const val KEY_SPEED = "speed"
     private const val KEY_ART_TITLE = "art_title"
-    private const val ART_FILE = "last_cover.png"
+    // Renamed when the saved art stopped being pre-rounded, so an old rounded
+    // copy is never stretched across a backdrop.
+    private const val ART_FILE = "last_cover_square.png"
 
     class Snapshot(
         val title: String,

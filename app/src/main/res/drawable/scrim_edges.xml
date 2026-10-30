@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Darkens the cover where the text and clock sit: a band holding steady
+     behind the title and track before it fades, the same along the bottom,
+     and a light dim over the whole so white buttons read on any art. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#33000000" />
+        </shape>
+    </item>
+    <item
+        android:gravity="top|fill_horizontal"
+        android:height="96dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="270"
+                android:centerColor="#B3000000"
+                android:centerY="0.55"
+                android:endColor="#00000000"
+                android:startColor="#D9000000" />
+        </shape>
+    </item>
+    <item
+        android:gravity="bottom|fill_horizontal"
+        android:height="72dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="90"
+                android:centerColor="#99000000"
+                android:endColor="#00000000"
+                android:startColor="#CC000000" />
+        </shape>
+    </item>
+</layer-list>
