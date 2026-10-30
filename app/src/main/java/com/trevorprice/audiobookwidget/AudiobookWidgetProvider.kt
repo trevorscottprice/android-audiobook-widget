@@ -75,6 +75,7 @@ class AudiobookWidgetProvider : AppWidgetProvider() {
         if (button != Feedback.Button.PLAY_PAUSE) Feedback.skipped(button)
         WidgetRender.updateAll(context)
         if (button != Feedback.Button.PLAY_PAUSE) {
+            Sounds.skip(context, button)
             settle(context, pending)
             return
         }

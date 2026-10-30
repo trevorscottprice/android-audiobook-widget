@@ -28,6 +28,7 @@ object MediaSessions {
     private const val KEY_PKG = "target_pkg"
     private const val KEY_SKIP = "skip_seconds"
     private const val KEY_HAPTICS = "haptics"
+    private const val KEY_SOUNDS = "sounds"
 
     const val DEFAULT_SKIP_SECONDS = 30
 
@@ -74,6 +75,14 @@ object MediaSessions {
     fun setHapticsEnabled(ctx: Context, enabled: Boolean) {
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit().putBoolean(KEY_HAPTICS, enabled).apply()
+    }
+
+    fun soundsEnabled(ctx: Context): Boolean =
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_SOUNDS, true)
+
+    fun setSoundsEnabled(ctx: Context, enabled: Boolean) {
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit().putBoolean(KEY_SOUNDS, enabled).apply()
     }
 
     /** The chosen player's name as the user knows it, for messages. */

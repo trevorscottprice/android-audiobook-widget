@@ -14,7 +14,8 @@ import androidx.core.view.WindowInsetsCompat
 
 /**
  * One-time setup: grant notification access, confirm which app to control,
- * pick how far the skip buttons jump, and whether a press buzzes.
+ * pick how far the skip buttons jump, and whether a press buzzes or a skip
+ * blips.
  */
 class MainActivity : Activity() {
 
@@ -25,6 +26,7 @@ class MainActivity : Activity() {
     private lateinit var appStatus: TextView
     private lateinit var skipButtons: List<Button>
     private lateinit var hapticsSwitch: Switch
+    private lateinit var soundsSwitch: Switch
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -53,6 +55,10 @@ class MainActivity : Activity() {
         hapticsSwitch = findViewById(R.id.haptics_switch)
         hapticsSwitch.setOnCheckedChangeListener { _, checked ->
             MediaSessions.setHapticsEnabled(this, checked)
+        }
+        soundsSwitch = findViewById(R.id.sounds_switch)
+        soundsSwitch.setOnCheckedChangeListener { _, checked ->
+            MediaSessions.setSoundsEnabled(this, checked)
         }
 
         skipButtons.forEachIndexed { index, button ->
@@ -96,6 +102,7 @@ class MainActivity : Activity() {
         }
 
         hapticsSwitch.isChecked = MediaSessions.hapticsEnabled(this)
+        soundsSwitch.isChecked = MediaSessions.soundsEnabled(this)
 
         WidgetRender.updateAll(this)
     }

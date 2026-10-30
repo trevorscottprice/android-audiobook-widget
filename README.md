@@ -105,6 +105,8 @@ is used, and the player's servers are never contacted.
   expected play state and seek position at once, tints the pressed button, and
   puts a short error in the subtitle when the player cannot be reached.
   `Haptics` adds a click when a press arrives and a double click on failure.
+  `Sounds` plays a short blip when a skip lands, rising for forward and
+  falling for rewind, made in code and muted on silent or vibrate.
 - `MediaSessions` locates the player's session and holds the preferences.
 - `MainActivity` is the one-time setup screen.
 

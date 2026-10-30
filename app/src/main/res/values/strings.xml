@@ -60,6 +60,7 @@
 
     <string name="step_feedback">4. Tap feedback</string>
     <string name="haptics_label">Vibrate when a widget button is pressed</string>
+    <string name="sounds_label">Blip when a skip goes through (not on silent or vibrate)</string>
 
     <string name="setup_outro">Now long-press your home screen, choose Widgets, and drag Audiobook Widget onto it. Start a book in your player and the widget fills in.</string>
 </resources>
