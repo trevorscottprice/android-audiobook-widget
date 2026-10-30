@@ -26,8 +26,8 @@ built for music, though, and a book is not an album:
   id in `DISPLAY_SUBTITLE` (Chirp shows things like `WARBREAKER1P02`), so
   `METADATA_KEY_ARTIST` is tried first.
 - **No network, no accounts.** The manifest's one `uses-permission` is
-  `VIBRATE`, for the buzz when a button press lands; it cannot reach the internet, so there is nothing
-  to serve ads or telemetry with. Notification access is the one thing you
+  `VIBRATE`, for the buzz when a button press lands. It cannot reach the
+  internet, so there is nothing to serve ads or telemetry with. Notification access is the one thing you
   grant, and it is what the media-session API requires.
 
 If what you actually want is album art with previous / next track, a generic
@@ -64,8 +64,8 @@ anything else, pick the app from a list in the setup screen.
 > Not affiliated with, endorsed by, or sponsored by Chirp, BookBub, Audible, or
 > any other player. It contains no code or assets from those apps.
 
-Two sizes, both with a full-width progress bar showing elapsed and remaining
-time along the bottom. **4x2** with cover art:
+Four sizes, all with a progress bar showing elapsed and remaining time.
+**4x2** with cover art:
 
 | Dark | Light |
 | --- | --- |
@@ -78,7 +78,11 @@ no cover art:
 | --- | --- |
 | ![4x1 widget, dark theme](docs/widget-compact-dark.png) | ![4x1 widget, light theme](docs/widget-compact-light.png) |
 
-Both follow the system theme. Cover art shown belongs to its respective
+**2x2** square: title, controls and the clock stacked under them. **2x2 cover**
+is the same square laid over the book's cover art, edge to edge, with the clock
+drawn on the art.
+
+All of them follow the system theme. Cover art shown belongs to its respective
 publisher and appears only to illustrate the layout.
 
 ## How it works
@@ -96,18 +100,26 @@ is used, and the player's servers are never contacted.
   A `Size` enum pairs each layout with flags for the optional pieces it
   contains; RemoteViews throws if you address a view id the layout does not
   have, so `hasCover` is load-bearing rather than cosmetic. The clock row is
-  shared by every size, from `res/layout/widget_clock.xml`.
-- `AudiobookWidgetProvider` (4x2) and `CompactWidgetProvider` (4x1) each render
-  their size. Both aim their buttons at `AudiobookWidgetProvider`, which handles
-  transport for every size and then repaints all placed widgets: a receiver is
-  live whether or not an instance of its size is on screen.
+  shared by the 4x2 and 4x1 from `res/layout/widget_clock.xml`. The 2x2 uses
+  `widget_clock_stacked.xml` and the 2x2 cover `widget_clock_on_art.xml`.
+- `AudiobookWidgetProvider` renders the 4x2. `CompactWidgetProvider.kt` holds
+  the providers for the other sizes (`CompactWidgetProvider`,
+  `SquareWidgetProvider`, `SquareCoverWidgetProvider`), which only draw. Every
+  size aims its buttons at `AudiobookWidgetProvider`, which handles transport
+  for all of them and then repaints all placed widgets: a receiver is live
+  whether or not an instance of its size is on screen.
 - `Feedback` lets the widget answer a tap before the player does: it draws the
   expected play state and seek position at once, tints the pressed button, and
   puts a short error in the subtitle when the player cannot be reached.
   `Haptics` adds a click when a press arrives and a double click on failure.
   `Sounds` plays a short blip when a skip lands, rising for forward and
   falling for rewind, made in code and muted on silent or vibrate.
-- `MediaSessions` locates the player's session and holds the preferences.
+- `LastPlayed` keeps the last book the player reported on disk, so the widget
+  still shows it after the player goes idle or is killed and drops its session.
+- `MediaSessions` locates the player's session and holds the preferences. When
+  the player has no session, Play connects to its `MediaBrowserService` and
+  asks it to play. Players built on Media3 take that as "resume where I left
+  off".
 - `MainActivity` is the one-time setup screen.
 
 Skip buttons prefer an explicit `seekTo` so the jump is exactly the configured
@@ -121,12 +133,18 @@ than the one on the button. Chirp's, for instance, is 15 seconds.
 2. Open **Audiobook Widget** and grant **notification access** (step 1).
 3. Confirm the detected player, or pick it from the list (step 2).
 4. Choose a skip amount — 10, 15, 30 or 60 seconds (step 3).
-5. Long-press the home screen → **Widgets** → drag on either
-   **Audiobook Widget** (4x2) or **Audiobook Widget (compact)** (4x1). Both can
-   be placed at once; they stay in sync.
+5. Choose tap feedback: a vibration on every press, and a short blip when a
+   skip goes through (step 4). Both are on by default.
+6. Long-press the home screen → **Widgets** → drag on **Audiobook Widget**
+   (4x2), **Audiobook Widget (compact)** (4x1), **Audiobook Widget (square)**
+   (2x2) or **Audiobook Widget (square, cover)** (2x2). Any number can be
+   placed at once; they stay in sync.
 
-Start a book and the widget fills in. With nothing playing it shows
-"Nothing playing" and opens the player when tapped.
+Start a book and the widget fills in. Once the player stops, the widget keeps
+showing the last book, and Play starts the player again if it publishes a
+media browser (most current players do). If
+nothing has ever played it shows "Nothing playing" and opens the player when
+tapped.
 
 ## Building
 
@@ -193,7 +211,7 @@ is debug-signed, so it is fine for sideloading and not for Play.
 ## Layout sizing
 
 Two things make the widget layout unintuitive, both worth knowing before
-changing `res/layout/widget_player.xml` or `res/layout/widget_compact.xml`:
+changing any of the `res/layout/widget_*.xml` files:
 
 **The host scales the whole widget.** On Samsung One UI the instance is laid out
 at its nominal cell size and then scaled down. Read the real numbers instead of

@@ -38,7 +38,7 @@
 
     <!-- Setup screen -->
     <string name="setup_heading">Audiobook Widget</string>
-    <string name="setup_intro">This widget controls your player through the same media session your lock screen uses. Two quick steps and you are done.</string>
+    <string name="setup_intro">This widget controls your player through the same media session your lock screen uses. A few quick steps and you are done.</string>
 
     <string name="step_access">1. Notification access</string>
     <string name="access_granted">Granted. The widget can read and control playback.</string>
